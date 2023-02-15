@@ -24,6 +24,7 @@ class UserMixin:
     _usernames_cache = {}  # username -> user_pk
     _users_following = {}  # user_pk -> dict(user_pk -> "short user object")
     _users_followers = {}  # user_pk -> dict(user_pk -> "short user object")
+    _users_suggestions = {}  # user_pk -> dict(user_pk -> "short user object")
 
     def user_id_from_username(self, username: str) -> str:
         """
@@ -761,6 +762,83 @@ class UserMixin:
         if amount and len(followers) > amount:
             followers = dict(list(followers.items())[:amount])
         return followers
+    
+    def user_suggestions_v1_chunk(self, user_id: str) -> List[UserShort]:
+        """
+        Get suggested users information for user_id provided by Private Mobile API
+
+        Parameters
+        ----------
+        user_id: str
+            User id of an instagram account
+
+        Returns
+        -------
+        List[UserShort]
+            List of users
+        """
+        unique_set = set()
+        users = []
+        result = self.private_request(f"discover/chaining/?module=profile&target_id={user_id}")
+        for user in result["users"]:
+            user = extract_user_short(user)
+            if user.pk in unique_set:
+                continue
+            unique_set.add(user.pk)
+            users.append(user)
+        return users
+    
+    def user_suggestions_v1(self, user_id: str, amount: int = 0) -> List[UserShort]:
+        """
+        Get the user suggestion information by Private Mobile API
+
+        Parameters
+        ----------
+        user_id: str
+            User id of an instagram account
+        amount: int, optional
+            Maximum number of media to return, default is 0 - Inf
+
+        Returns
+        -------
+        List[UserShort]
+            List of objects of User type
+        """
+        users = self.user_suggestions_v1_chunk(str(user_id))
+        if amount:
+            users = users[:amount]
+        return users
+    
+    def user_suggestions(
+            self, user_id: str, use_cache: bool = True, amount: int = 0
+    ) -> Dict[str, UserShort]:
+        """
+        Get user's suggestions
+
+        Parameters
+        ----------
+        user_id: str
+            User id of an instagram account
+        use_cache: bool, optional
+            Whether or not to use information from cache, default value is True
+        amount: int, optional
+            Maximum number of media to return, default is 0 - Inf
+
+        Returns
+        -------
+        Dict[str, UserShort]
+            Dict of user_id and User object
+        """
+        user_id = str(user_id)
+        users = self._users_suggestions.get(user_id, {})
+        if not use_cache or not users or (amount and len(users) < amount):
+            users = self.user_suggestions_v1(user_id, amount)
+            print(users)
+            self._users_suggestions[user_id] = {user.pk: user for user in users}
+        suggestions = self._users_suggestions[user_id]
+        if amount and len(suggestions) > amount:
+            suggestions = dict(list(suggestions.items())[:amount])
+        return suggestions
 
     def user_follow(self, user_id: str) -> bool:
         """
