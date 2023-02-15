@@ -43,7 +43,7 @@ Low level methods:
 | user_following_gql(user_id: int, amount: int = 0)                                   | List[UserShort]             | Get user's following information by Public Graphql API                     |
 | search_followers_v1(user_id: int, query: str)                                       | List[UserShort]             | Search by followers by Private Mobile API                                  |
 | search_following_v1(user_id: int, query: str)                                       | List[UserShort]             | Search by following by Private Mobile API                                  |
-| user_suggestions(user_id: int, query: str)                                       | List[UserShort]             | Search by following by Private Mobile API                                  |
+| user_suggestions(user_id: int)                                                      | List[UserShort]             | Get user's suggestions users information by Private Mobile  API                                  |
 
 Example:
 
